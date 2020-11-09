@@ -4,7 +4,7 @@ library(tidyverse)
 ##### DATA CLEANING #####
 
 #read in data set 
-setwd("C:/Users/17739/Desktop/ST 537 Applied Multivariate and Longitudinal Data Analysis/R Project/Breast Cancer Git Hub/Data/")
+setwd("C:/Users/17739/GitHub/BreastCancerDetection/Breast Cancer Git Hub/Data/")
 bc.df = read.table('breast-cancer-wisconsin.data', sep=',')
 colnames(bc.df) = c('Id', 'Clump Thickness', 'Cell Size Uniformity', 'Cell Shape Uniformity', 
                     'Marginal Adhesion', 'Single Epithelial Cell Size', 'Bare Nuclei', 'Bland Chromatin', 
