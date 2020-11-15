@@ -1,0 +1,241 @@
+---
+title: "Untitled"
+author: "John Clements"
+date: "11/14/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part 1: Data Loading, Cleaning, and Splitting
+
+```{r}
+#Breast Cancer Detection Project
+library(tidyverse)
+
+##### DATA CLEANING #####
+
+# Read in data set. 
+#setwd("C:/Users/17739/GitHub/BreastCancerDetection/Breast Cancer Git Hub/Data/")
+bc.df <- read.table('Data/breast-cancer-wisconsin.data', sep=',')
+# Add informative column names.
+colnames(bc.df) = c('Id', 'Clump Thickness', 'Cell Size Uniformity', 'Cell Shape Uniformity', 
+                    'Marginal Adhesion', 'Single Epithelial Cell Size', 'Bare Nuclei', 'Bland Chromatin', 
+                    'Normal Nucleoli', 'Mitosis', 'Class')
+
+#head(bc.df) # View first 6 rows of data.
+#dim(bc.df) # Check the dimensions of the data.
+#str(bc.df) # Bare Nuclei is only feature stored as chr instead of int.
+#table(bc.df$Class) # Report the frequency for each class.
+
+# Write dataframe to a csv file.
+#write.csv(bc.df,"breast-cancer-wisconsin.csv", row.names = FALSE)
+
+# Identify missing data.
+#bc.df %>% filter(!`Bare Nuclei` %in% c("1","2","3","4","5","6","7","8","9","10"))
+
+# Calculte mean Bare Nuclei by Class.
+mean.BareNuclei.2 <- bc.df %>% 
+  group_by(Class) %>% 
+  summarize(Mean = mean(as.numeric(`Bare Nuclei`),
+                        na.rm=TRUE))%>%filter(Class == 2)
+mean.BareNuclei.4 <- bc.df %>% 
+  group_by(Class) %>% 
+  summarize(Mean = mean(as.numeric(`Bare Nuclei`),
+                        na.rm=TRUE))%>%filter(Class == 4)
+
+# Impute missing Bare Nuclei data with the mean for each Class mean.
+#Bare Nuclei (class 2) with mean Bare Nuclei for class 2
+#Bare Nuclei (class 4) with mean Bare Nuclei for class 4
+bc.df <- bc.df %>% 
+  mutate(`Bare Nuclei Revised` = ifelse(`Bare Nuclei` == "?" & Class == 2,
+                                        round(mean.BareNuclei.2$Mean,2), 
+                                        ifelse(`Bare Nuclei` == "?" & Class == 4,
+                                               round(mean.BareNuclei.4$Mean,2), `Bare Nuclei`))) #%>%
+  #filter(`Bare Nuclei` == "?")
+
+# Convert Bare Nuclei Revised data to the int data type.
+bc.df$`Bare Nuclei Revised` <- as.integer(bc.df$`Bare Nuclei Revised`)
+
+#str(bc.df)
+
+#write revised dataframe to csv 
+#write.csv(bc.df,"breast-cancer-wisconsin_revised.csv", row.names = FALSE)
+
+# Convert Class to a factor variable.
+bc.df$Class = as.factor(bc.df$Class)
+
+##### DATA SPLITTING #####
+
+# Set a random seed for reproducibility.
+set.seed(17)
+# Count the number of observations in the data set.
+num.obs <- dim(bc.df)[1]
+# Set the proportion of observations to be in the training data set.
+prop.train <- 0.7
+# Set the number of observations to be in the training data set.
+num.train <- round(num.obs*prop.train)
+# set the indicies of the dataset to be in the training data set.
+train.indices <- sample(1:num.obs, num.train, replace=FALSE)
+
+# Subset the data into training and testing data sets.
+train.bc.df <- bc.df[train.indices,]
+test.bc.df <- bc.df[-train.indices,]
+```
+
+# Part 2: Principal Components Analysis
+
+
+```{r}
+##### PCA (Principle Components Analysis #####
+#Scientific Question 2
+#Can we use PCA to reduce the dimensionality of the data and to identify/summarize crucial variables?
+
+library(knitr)
+library(GGally)
+
+# Split the training and testing data sets into independent variables and dependent variables.
+train.bc.df.class <- train.bc.df$Class
+train.bc.df.X <- select(train.bc.df, -c("Id","Bare Nuclei","Class"))
+test.bc.df.class <- test.bc.df$Class
+test.bc.df.X <- select(test.bc.df, -c("Id","Bare Nuclei","Class"))
+
+# Plot a correlation matrix.
+ggcorr(train.bc.df.X, label=TRUE, label_size=3, label_round=2)
+
+# Shows that Cell Shape Uniformity and Cell Size Uniformity are highly correlated (0.91).
+cor(train.bc.df.X)
+
+# Check the sd for each variable. 
+round(apply(train.bc.df.X, 2, sd),3) # need to standardize variables 
+
+# Standardize the variables. 
+train.bc.df.X.std <- scale(train.bc.df.X, center=TRUE, scale=TRUE)
+# Check if the data is Scaled Correctly. 
+apply(train.bc.df.X.std, 2,sd)
+
+# Perform PCA.
+data.pca <- prcomp(train.bc.df.X.std)
+# Extract the importance of each component.
+summary(data.pca)
+
+# Make a Scree Plot to help determine how many PCs to retain.
+screeplot(data.pca, type = "line", main = "Variance Explained by each PC")
+# The elbow in the graph is at PC2.
+#PC 1 and 2 explain 71% of the variability
+
+# Display the loadings for PC1 and PC2 for review.
+round(data.pca$rotation[, 1:2], 3)
+# PC1 is roughly equally weighted.
+# PC2 is essentially the effect of Mitosis.
+PC1 <- data.pca$rotation[, 1]
+PC2 <- data.pca$rotation[, 2]
+
+PC.scores.1 <- train.bc.df.X.std %*% PC1
+PC.scores.2 <- train.bc.df.X.std %*% PC2
+
+# Plot PC score 1 vs PC score 2 colored by class.
+plot(PC.scores.1,PC.scores.2, pch=19, col=train.bc.df.class)
+```
+
+# Part 4: Classification
+
+```{r}
+# Set the number of principal components to keep.
+num.keep <- 2
+
+# Re-fit prcomp() so it knows to center and scale input data.
+pca.fit <- prcomp(train.bc.df.X, center=TRUE, scale=TRUE)
+
+# Create a new dataframe to hold the prcomp() transformed training data.
+train.pca <- as.data.frame(pca.fit$x[, 1:num.keep])
+# Create a new dataframe to hold the prcomp() transformed testing data.
+test.pca <- as.data.frame(predict(pca.fit, test.bc.df.X)[, 1:num.keep])
+
+# Re-attach the Class to the PCA-trainsformed training and testing dataframes.
+train.pca$Class <- train.bc.df.class
+test.pca$Class <- test.bc.df.class
+```
+
+
+```{r}
+library(caret)
+library(kernlab)
+
+# We will be using 5-fold cross-validation, repeating the process 20 times.
+TrControl <- trainControl(method = "repeatedcv",
+                          number = 5,
+                          repeats = 20)
+
+# Fit a KNN classifier by selecting the model with the best number of neighbors
+# by performing 5-fold cross-validation tuning the k parameter using the odd numbers 
+# from 1 up to 9.
+knn.model <- train(Class ~ ., data = train.pca, 
+                   method = "knn", 
+                   trControl = TrControl, 
+                   tuneGrid = expand.grid(k = seq(1, 9, by=2)))
+
+# Perform 5-fold cross-validation using a LDA classifier.
+lda.model <- train(Class ~ ., data = , train.pca,
+                   method = "lda", 
+                   trControl = TrControl)
+
+# Perform 5-fold cross-validation using a QDA classifier.
+qda.model <- train(Class ~ ., data = , train.pca,
+                   method = "qda", 
+                   trControl = TrControl)
+
+# Fit a tree classifier by selecting the model with the best complexity parameter (cp)
+# by performing 5-fold cross-validation tuning the cp parameter using 0.001, 0.01, 
+# and 0.1
+tree.model <- train(Class ~ ., data = train.pca,
+                    method = "rpart", 
+                    trControl = TrControl, 
+                    tuneGrid = expand.grid(cp = seq(0.05, 0.5, by=0.05)))
+
+# Fit a SVM classifier with a radial kernel by selecting the model tuning the C and
+# sigma parameters by performing 5-fold cross-validation tuning 
+# the C parameter from 0.25 to 4, doubling each time, and the sigma parameter from
+# 0.125 to 8, doubling each time
+svm.model <- train(Class ~ ., data = train.pca, 
+                   method = "svmRadial",
+                   trControl = TrControl, 
+                   tuneGrid = expand.grid(C = 2^c(-2:2), 
+                                          sigma = 2^(-3:3)))
+
+# Summarize the Accuracy and Cohen's Kappa for each model in the 5-fold CV.
+resamp <- resamples(list(KNN = knn.model, LDA = lda.model, QDA = qda.model, 
+                         TREE = tree.model, SVM = svm.model))
+
+# Display the summary of the model performances.
+summary(resamp)
+```
+
+```{r}
+# Make a boxplot of the model Accuracies and Cohen's Kappas.
+bwplot(resamp)
+```
+
+```{r}
+library(klaR)
+
+# Get predictions for the test set from the tree model.
+tree.preds <- predict(tree.model, test.pca)
+# Make a confusion matrix for the tree model.
+tree.emat <- errormatrix(test.pca$Class, tree.preds,
+                         relative = TRUE)
+# Display the confusion matrix for the tree model.
+round(tree.emat, 3)
+```
+
+```{r}
+# Get predictions for the test set from the knn model.
+knn.preds <- predict(knn.model, test.pca)
+# Make a confusion matrix for the knn model.
+knn.emat <- errormatrix(test.pca$Class, knn.preds,
+                        relative = TRUE)
+# Display the confusion matrix for the knn model.
+round(knn.emat, 3)
+```
