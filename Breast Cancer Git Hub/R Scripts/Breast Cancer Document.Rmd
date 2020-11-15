@@ -18,7 +18,7 @@ library(tidyverse)
 ##### DATA CLEANING #####
 
 # Read in data set. 
-#setwd("C:/Users/17739/GitHub/BreastCancerDetection/Breast Cancer Git Hub/Data/")
+#setwd("C:/Users/17739/Documents/GitHub/BreastCancerDetection/Breast Cancer Git Hub/")
 bc.df <- read.table('Data/breast-cancer-wisconsin.data', sep=',')
 # Add informative column names.
 colnames(bc.df) = c('Id', 'Clump Thickness', 'Cell Size Uniformity', 'Cell Shape Uniformity', 
@@ -105,7 +105,7 @@ test.bc.df.X <- select(test.bc.df, -c("Id","Bare Nuclei","Class"))
 # Plot a correlation matrix.
 ggcorr(train.bc.df.X, label=TRUE, label_size=3, label_round=2)
 
-# Shows that Cell Shape Uniformity and Cell Size Uniformity are highly correlated (0.91).
+# Shows that Cell Shape Uniformity and Cell Size Uniformity are highly correlated (0.90).
 cor(train.bc.df.X)
 
 # Check the sd for each variable. 
@@ -124,7 +124,7 @@ summary(data.pca)
 # Make a Scree Plot to help determine how many PCs to retain.
 screeplot(data.pca, type = "line", main = "Variance Explained by each PC")
 # The elbow in the graph is at PC2.
-#PC 1 and 2 explain 71% of the variability
+#PC 1 and 2 explain 74% of the variability
 
 # Display the loadings for PC1 and PC2 for review.
 round(data.pca$rotation[, 1:2], 3)
