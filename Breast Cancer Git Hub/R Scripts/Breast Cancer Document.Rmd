@@ -2,7 +2,9 @@
 title: "Untitled"
 author: "John Clements"
 date: "11/14/2020"
-output: word_document
+output:
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -66,6 +68,23 @@ bc.df$`Bare Nuclei Revised` <- as.integer(bc.df$`Bare Nuclei Revised`)
 
 # Convert Class to a factor variable.
 bc.df$Class = as.factor(bc.df$Class)
+
+
+##### SUMMARY STATISTICS #####
+bc.df.mean <- dplyr::select(bc.df, -c("Id","Bare Nuclei")) %>% group_by(Class) %>% summarise_all("mean")
+#transpose from wide to long
+bc.df.mean<-as.data.frame(t(dplyr::select(bc.df.mean,-"Class")))
+colnames(bc.df.mean) <- c('Benign', 'Malignant')
+
+
+bc.df.sd <- dplyr::select(bc.df, -c("Id","Bare Nuclei")) %>% group_by(Class) %>% summarise_all("sd")
+#transpose from wide to long
+bc.df.sd<-as.data.frame(t(dplyr::select(bc.df.sd,-"Class")))
+colnames(bc.df.sd) <- c('Benign', 'Malignant')
+
+#Formatting Tables 
+knitr::kable(bc.df.mean,align = 'c', caption =  'Mean Summary Statistics', digits = 2)
+knitr::kable(bc.df.sd,align = 'c', caption =  'Standard Deviation Summary Statistics', digits = 3)
 
 ##### DATA SPLITTING #####
 
