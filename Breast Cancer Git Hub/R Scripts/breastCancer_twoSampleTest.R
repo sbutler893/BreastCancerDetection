@@ -4,6 +4,7 @@
 
 
 ## read in data set, data processing 
+# setwd("C:/Users/17739/Documents/GitHub/BreastCancerDetection/Breast Cancer Git Hub/Data/")
 data = read.csv("breast-cancer-wisconsin_revised.csv", header=TRUE)[,-7]
 data$Class = as.factor(data$Class)
 str(data)
