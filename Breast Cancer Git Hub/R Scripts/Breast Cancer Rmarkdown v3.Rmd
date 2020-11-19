@@ -2,7 +2,9 @@
 title: "ST 537 Final Project"
 author: "Shantel Ward, Rong Huang, John Clements"
 date: "11/17/2020"
-output: word_document
+output:
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -70,28 +72,29 @@ colnames(bc.df) = c("Id", "Clump Thickness", "Cell Size Uniformity",
                     "Bland Chromatin", "Normal Nucleoli", "Mitosis", 
                     "Class")
 
-# Calculate mean Bare Nuclei by Class.
-mean.BareNuclei.2 <- bc.df %>% 
+# Calculate median Bare Nuclei by Class.
+median.BareNuclei.2 <- bc.df %>% 
   group_by(Class) %>% 
-  summarize(Mean = mean(as.numeric(`Bare Nuclei`),
+  summarize(Median = median(as.numeric(`Bare Nuclei`),
                         na.rm=TRUE))%>%filter(Class == 2)
-mean.BareNuclei.4 <- bc.df %>% 
+median.BareNuclei.4 <- bc.df %>% 
   group_by(Class) %>% 
-  summarize(Mean = mean(as.numeric(`Bare Nuclei`),
+  summarize(Median = median(as.numeric(`Bare Nuclei`),
                         na.rm=TRUE))%>%filter(Class == 4)
 
-# Impute missing Bare Nuclei data with the mean for each Class mean.
+# Impute missing Bare Nuclei data with the median for each Class mean.
 bc.df <- bc.df %>% 
   mutate(`Bare Nuclei Revised` = ifelse(`Bare Nuclei` == "?" & Class == 2,
-                                        round(mean.BareNuclei.2$Mean,2), 
+                                        round(median.BareNuclei.2$Median,2), 
                                         ifelse(`Bare Nuclei` == "?" & Class == 4,
-                                               round(mean.BareNuclei.4$Mean,2), `Bare Nuclei`))) #%>%
+                                               round(median.BareNuclei.4$Median,2), `Bare Nuclei`)))
 
 # Convert Bare Nuclei Revised data to the int data type.
 bc.df$`Bare Nuclei Revised` <- as.integer(bc.df$`Bare Nuclei Revised`)
 
 # Convert Class to a factor variable.
 bc.df$Class = as.factor(bc.df$Class)
+
 
 ##### SUMMARY STATISTICS #####
 bc.df.mean <- dplyr::select(bc.df, -c("Id","Bare Nuclei")) %>% group_by(Class) %>% summarise_all("mean")
@@ -211,7 +214,7 @@ Where $S_{pool, kk}$ is the $k^th$ diagonal entry of $S_{pool}$,and $\mu_{1k}-\m
 
 ### Principal Components Analysis (PCA)
 
-The main goal of PCA is to identify linear combinations of X of the form $Y_i= a_i^T X$, where $i = 1,2,...,q$,that explains most of the variability in $X$. Usually, $q < p$. $a_i^T$ is a vector of length $p$ which represents the PC loadings and tells us how the original features are weighted to get the PCs. $Y_i$ represents the new variables and are ordered according to their importance. For instance, $Y_1$ is designed to capture the most variability in the original features by any linear combination. $Y_2$ then captures the most of the remaining variability while being uncorrelated to $Y_1$, and so on. We hope that the first few $Y_i$"s capture most of the variability in $X$. If we are able to capture most of the variability in X with a few $Y_i$"s , then we have achieved dimensionality reduction by condensing a sufficient portion of the information present in the original set of features via linear combinations while losing as little information as possible. 
+The main goal of PCA is to identify linear combinations of X of the form $Y_i= a_i^T X$, where $i = 1,2,...,q$,that explains most of the variability in $X$. Usually, $q < p$. $a_i^T$ is a vector of length $p$ which represents the PC loadings and tells us how the original features are weighted to get the PCs. $Y_i$ represents the new variables and are ordered according to their importance. For instance, $Y_1$ is designed to capture the most variability in the original features by any linear combination. $Y_2$ then captures the most of the remaining variability while being uncorrelated to $Y_1$, and so on. We hope that the first few $Y_i$'s capture most of the variability in $X$. If we are able to capture most of the variability in X with a few $Y_i$'s , then we have achieved dimensionality reduction by condensing a sufficient portion of the information present in the original set of features via linear combinations while losing as little information as possible. 
 
 We used the prcomp function from the stats package in R to conduct the PCA. The PCA was run using the training dataset with the center and scale arguments set equal to true to standardize the dataset. The results and interpretation of the PC loadings will be discussed in the results section.  
 
@@ -251,7 +254,7 @@ Scientific Question #1:  Are there statistically significant differences between
 
 ```{r}
 # pair plot
-pairs(bc.df[,-c(1,10)],
+pairs(bc.df[,-c(1,7,11)],
       col = c(4, 2)[as.numeric(bc.df$Class)],   # Change color by group
       pch = c(8, 1)[as.numeric(bc.df$Class)],   # Change points by group
       main = "Pair Plot of Benign and Malignant for All Variables", oma=c(2,2,2,16))
@@ -309,7 +312,7 @@ par(mfrow=c(1,2))
 chisquare.plot(X,2, "Chi-square Q-Q Plot of Benign")
 chisquare.plot(Y,2, "Chi-square Q-Q Plot of Malignant")
 
-## Two-sample Hotelling"s T2 test
+## Two-sample Hotelling's T2 test
 HotellingsT2(X,Y)
 
 ## Bonferroni intervals
@@ -342,7 +345,7 @@ The 95% Bonferroni intervals for mean difference (1-2) are displayed below. Sinc
 half.width = crit*sqrt(diag(S.pool)*(1/m + 1/n))
 lower = difference - half.width
 upper = difference + half.width
-int.bonf = cbind(lower, upper)
+int.bonf = round(cbind(lower, upper),3)
 int.bonf
 ```
 
@@ -438,7 +441,9 @@ PC2 <- data.pca$rotation[, 2]
 PC.scores.1 <- train.bc.df.X.std %*% PC1
 PC.scores.2 <- train.bc.df.X.std %*% PC2
 # Plot PC score 1 vs PC score 2 colored by class.
-plot(PC.scores.1,PC.scores.2, pch=19, col=train.bc.df.class)
+plot(PC.scores.1,PC.scores.2, pch=19, col=train.bc.df.class, main = "PC1 Scores vs PC2 Scores", xlab = "PC1 Scores", ylab = "PC2 Scores")
+legend("bottomleft", legend=c("Class 2: Benign", "Class 4: Malignant"),
+       col=c("black", "red"), pch=19, cex=0.8)
 ```
 
 ## Classification
@@ -465,6 +470,7 @@ num.keep <- 2
 
 # Re-fit prcomp() so it knows to center and scale input data.
 pca.fit <- prcomp(train.bc.df.X, center=TRUE, scale=TRUE)
+summary(pca.fit)
 
 # Create a new dataframe to hold the prcomp() transformed training data.
 train.pca <- as.data.frame(pca.fit$x[, 1:num.keep])
@@ -533,7 +539,7 @@ svm.model <- train(Class ~ ., data = train.df,
                    tuneGrid = expand.grid(C = 2^c(-2:2), 
                                           sigma = 2^(-3:3)))
 
-# Summarize the Accuracy and Cohen"s Kappa for each model in the 5-fold CV.
+# Summarize the Accuracy and Cohen's Kappa for each model in the 5-fold CV.
 resamp <- resamples(list(KNN = knn.model, LDA = lda.model, QDA = qda.model, 
                          TREE = tree.model, SVM = svm.model))
 
@@ -630,7 +636,7 @@ svm.model.pca <- train(Class ~ ., data = train.pca,
                        tuneGrid = expand.grid(C = 2^c(-2:2), 
                                               sigma = 2^(-3:3)))
 
-# Summarize the Accuracy and Cohen"s Kappa for each model in the 5-fold CV.
+# Summarize the Accuracy and Cohen's Kappa for each model in the 5-fold CV.
 resamp.pca <- resamples(list(KNN = knn.model.pca, LDA = lda.model.pca, QDA = qda.model.pca, 
                          TREE = tree.model.pca, SVM = svm.model.pca))
 ```
@@ -656,7 +662,7 @@ knitr::kable(pca.kappa, align = "c",
 ```
 
 ```{r}
-# Make a boxplot of the model Accuracies and Cohen"s Kappas.
+# Make a boxplot of the model Accuracies and Cohen's Kappas.
 bwplot(resamp)
 ```
 
