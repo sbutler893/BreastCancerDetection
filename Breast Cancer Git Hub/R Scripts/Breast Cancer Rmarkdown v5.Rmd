@@ -356,9 +356,9 @@ train.bc.df.X <- select(train.bc.df, -c("Id","Bare Nuclei","Class"))
 test.bc.df.class <- test.bc.df$Class
 test.bc.df.X <- select(test.bc.df, -c("Id","Bare Nuclei","Class"))
 # Plot a correlation matrix.
-ggcorr(train.bc.df.X, label=TRUE, label_size=3, label_round=2)
+ggcorr(train.bc.df.X, label=TRUE, label_size=4, label_round=2, layout.exp = 5, hjust = "right")
 # Shows that Cell Shape Uniformity and Cell Size Uniformity are highly correlated (0.90).
-cor(train.bc.df.X)
+#cor(train.bc.df.X)
 ```
 
 ```{r}
@@ -603,7 +603,9 @@ kappa <- resample.summary(resamp, ordered.model.names, accuracy=FALSE)
 ```
 
 In the resampling, all of the models significantly outperformed the no information rate. For all of the model specifications, the ones trained on the data transformed by the first two principal components consistently outperformed their counterparts trained on the raw training data. From the models trained on the PCA transformed data, the KNN ($k=3$), the Classification Tree ($cp = 0.5$), and the SVM ($C = 1$, $Sigma = 4$) had the best performances in Accuracy and Cohen's $\kappa$. The KNN and Classification Tree slightly outperformed the SVM and are simpler models, so we proceeded with them for testing on the withheld testing data set.
-
+  
+\newpage  
+  
 ```{r}
 knitr::kable(acc, align = "c", 
              caption =  "Resampling Accuracy", digits = 7)
@@ -658,7 +660,7 @@ print(paste("Percent of Tree Model Predictions equal to K-NN Model Predictions: 
 
 ```{r}
 knitr::kable(knn.emat, align = "c", 
-             caption =  paste("Tree (cp = ", best.cp, ") and ", "KNN (k = ", best.k, ")", sep=""))
+             caption =  paste("Test Set Confusion Matrix for Tree (cp = ", best.cp, ") and ", "KNN (k = ", best.k, ")", sep=""))
 ```
 
 
