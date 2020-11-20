@@ -332,7 +332,7 @@ half.width = crit*sqrt(diag(S.pool)*(1/m + 1/n))
 lower = difference - half.width
 upper = difference + half.width
 int.bonf = round(cbind(lower, upper),3)
-int.bonf
+knitr::kable(int.bonf, align = "c", caption =  "Bonferroni Intervals", digits = 2)
 ```
 
 ## Principal Components Analysis (PCA) Results
